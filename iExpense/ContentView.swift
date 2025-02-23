@@ -41,19 +41,23 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             List {
-                ForEach(expenses.items) { item in
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text("\(item.name)")
-                                .font(.headline)
-                            Text("\(item.type)")
-                                .foregroundStyle(.gray)
-                        }
-                        Spacer()
-                        Text(item.amount, format: .currency(code: "USD"))
+                Section("Business") {
+                    ForEach(expenses.items.filter {$0.type == "Business"}) { item in
+                        ExpenseRow(item: item)
                     }
+                    .onDelete(perform: { offsets in
+                        removeItems(at: offsets, type: "Business")
+                    })
                 }
-                .onDelete(perform: removeItems)
+                
+                Section("Personal") {
+                    ForEach(expenses.items.filter {$0.type == "Personal"}) { item in
+                        ExpenseRow(item: item)
+                    }
+                    .onDelete(perform: { offsets in
+                        removeItems(at: offsets, type: "Personal")
+                    })
+                }
             }
             .navigationTitle("iExpense")
             .toolbar {
@@ -68,8 +72,29 @@ struct ContentView: View {
         }
     }
     
-    func removeItems(at offsets : IndexSet) {
-        expenses.items.remove(atOffsets: offsets)
+    func removeItems(at offsets : IndexSet, type: String) {
+        let filteredItems = expenses.items.filter { $0.type == type }
+        let indicesToDelete = offsets.map { filteredItems[$0].id }
+        expenses.items.removeAll { indicesToDelete.contains($0.id) }
+    }
+}
+
+//reusable view
+struct ExpenseRow : View {
+    let item : ExpenseItem
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading) {
+                Text("\(item.name)")
+                    .font(.headline)
+                Text("\(item.type)")
+                    .foregroundStyle(.gray)
+            }
+            Spacer()
+            Text(item.amount, format: .currency(code: Locale.current.currency?.identifier ?? "USD"))
+                .foregroundStyle(item.amount > 100 ? .red : (item.amount > 25 ? .blue : .green))
+                .fontWeight(item.amount > 100 ? .bold : .regular)
+        }
     }
 }
 #Preview {
